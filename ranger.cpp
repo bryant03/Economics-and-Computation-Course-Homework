@@ -126,6 +126,7 @@ void expansion_attacker(int u){
 
 bool estimate(){
     if(ranger.x==attacker.x&&ranger.y==attacker.y){
+    	score=-30;
         return true;
     }
     bool f=false;
@@ -134,11 +135,42 @@ bool estimate(){
         if(attacker.x==ddx[j]&&attacker.y==ddy[j]) f=true;
     }
     if(f) return true;
- 
+    return false;
 }
 
-double Simulation(int u){
+void Simulation_attacker(){
+	std::vector<int> tmp;
+    for (int i = 0; i < 5; ++i)
+    {
+        int xx=attacker.x+dx[i];
+        int yy=attacker.y+dy[i];
+        if(xx<0||xx>6||yy<0||yy>6){
+            bool f=false;
+            for (int j = 0; j < 4; ++j)
+            {
+                if(xx==ddx[j]&&yy==ddy[j]) f=true;
+            }
+            if(!f) continue;
+        }
+        tmp.push_back(i);
+    }
+    int sel=rand()%tmp.size();
+    attacker.x+=dx[tmp[sel]];
+    attacker.y+=dy[tmp[sel]];    
+}
 
+void Simulation_ranger(){
+	std::vector<int> tmp;
+    for (int i = 0; i < 5; ++i)
+    {
+        int xx=ranger.x+dx[i];
+        int yy=ranger.y+dy[i];
+        if(xx<0||xx>6||yy<0||yy>6) continue;
+        tmp.push_back(i);
+    }
+    int sel=rand()%tmp.size();
+    ranger.x+=dx[tmp[sel]];
+    ranger.y+=dy[tmp[sel]];    
 }
 
 void Backpropagation(int u,int v){
@@ -167,7 +199,7 @@ void MCTS(){
                 m[i][j].ani=animal[i][j];
             }
         }
-        int u,v;
+        int u,v=0;
         u=selection_attacker(0);
         if(u==1) attacker.x=0;attacker.y=3;
         else if(u==2) attacker.x=3;attacker.y=6;
@@ -177,6 +209,9 @@ void MCTS(){
         for (int i = 0; i < 30; ++i)
         {
             if(state1==false&&state2==false){
+                if (estimate()){
+                	break;
+                }
                 if(att[u].size()==0){
                     state1=true;
                     expansion_attacker(u);
@@ -193,7 +228,42 @@ void MCTS(){
                 else { 
                     u=selection_attacker(u);
                 }
-
+            }
+            else if(!state1&&state2){
+                if (estimate()){
+                	break;
+                }
+                if(att[u].size()==0){
+                    state1=true;
+                    expansion_attacker(u);
+                    u=vnode_attacker.size();
+                }
+                else { 
+                    u=selection_attacker(u);
+                }
+                Simulation_ranger();
+            }
+            else if (state1&&!state2)
+            {
+                if (estimate()){
+                	break;
+                }
+                if(ran[u].size()==0){
+                    state2=true;
+                    expansion_ranger(v);
+                    v=vnode_ranger.size();
+                }
+                else { 
+                    v=selection_ranger(v);
+                }
+                Simulation_attacker();
+            }
+            else{
+                if (estimate()){
+                	break;
+                }
+                Simulation_attacker();
+                Simulation_ranger();            	
             }
         }
         int curr=selection(0);
